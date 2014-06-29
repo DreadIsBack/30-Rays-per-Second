@@ -12,6 +12,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Mathem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Mathem.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F2C60385-FEDB-4E64-9225-239F9C71F0C3}</ProjectGuid>
