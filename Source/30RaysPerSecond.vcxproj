@@ -17,6 +17,9 @@
   <ItemGroup>
     <ClInclude Include="Mathem.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Bin\rays.cs.glsl" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F2C60385-FEDB-4E64-9225-239F9C71F0C3}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

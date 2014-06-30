@@ -41,6 +41,85 @@ void trDestroyRenderResultTexture()
 
 //------------------------------------------------------------------------------------
 
+GLuint gProgramID = 0;
+
+char* rhLoadFile(const char* fileName)
+{
+	FILE* f = fopen(fileName, "rb");
+	if (!f)
+		return nullptr;
+
+	fseek(f, 0, SEEK_END);
+	int size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+
+	char* buffer = new char[size + 1];
+	fread(buffer, 1, size, f);
+	buffer[size] = 0;
+	fclose(f);
+
+	return buffer;
+}
+
+GLuint rhCreateShader(GLenum shaderType, const char* source)
+{
+	GLuint shader = glCreateShader(shaderType);
+
+	const char* str = source;
+	glShaderSource(shader, 1, (const GLchar**)&str, nullptr);
+	glCompileShader(shader);
+
+	GLint status;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+	if (status != GL_TRUE)
+	{
+		char buffer[1024];
+		glGetShaderInfoLog(shader, 1024, nullptr, buffer);
+		MessageBoxA(nullptr, buffer, "OpenGL Shader Error!", MB_OK);
+		return 0;
+	}
+
+	return shader;
+}
+
+bool trCreateShaderProgram()
+{
+	gProgramID = glCreateProgram();
+	//GLuint vs = rhCreateShader(GL_VERTEX_SHADER, rhLoadFile("rays.vs.glsl"));
+	//GLuint fs = rhCreateShader(GL_FRAGMENT_SHADER, rhLoadFile("rays.fs.glsl"));
+	GLuint cs = rhCreateShader(GL_COMPUTE_SHADER, rhLoadFile("../Data/rays.cs.glsl"));
+
+	//glAttachShader(gProgramID, vs);
+	//glAttachShader(gProgramID, fs);
+	glAttachShader(gProgramID, cs);
+
+	glLinkProgram(gProgramID);
+
+	GLint status;
+	glGetProgramiv(gProgramID, GL_LINK_STATUS, &status);
+	if (status != GL_TRUE)
+	{
+		char buffer[1024];
+		glGetProgramInfoLog(gProgramID, 1024, nullptr, buffer);
+		MessageBoxA(nullptr, buffer, "OpenGL Shader Error!", MB_OK);
+		return false;
+	}
+
+	glDeleteShader(cs);
+	//glDeleteShader(fs);
+	//glDeleteShader(vs);
+
+	return true;
+}
+
+void trDestroyShaderProgram()
+{
+	glDeleteProgram(gProgramID);
+	gProgramID = 0;
+}
+
+//------------------------------------------------------------------------------------
+
 GLFWwindow* gWindow = nullptr;
 
 void OnResize(GLFWwindow* window, int width, int height)
@@ -75,6 +154,7 @@ int main()
 	glEnable(GL_TEXTURE_2D);
 
 	trCreateRenderResultTexture();
+	if (!trCreateShaderProgram()) return -1;
 	TR_CHECK_OPENGL();
 
 
@@ -83,10 +163,17 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
+		// Compute Lighting
+		glUseProgram(gProgramID);
+		glBindImageTexture(0, gRenderResultTexID, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		const int WorkGroup = 8;
+		glDispatchCompute(TR_WIDTH / WorkGroup, TR_HEIGHT / WorkGroup, 1);
+		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+		glUseProgram(0);
+
 		// Fullscreen Quad
 		glBindTexture(GL_TEXTURE_2D, gRenderResultTexID);
 		glBegin(GL_QUADS);
-		glColor3f(0.3f, 1.0f, 0.3f); // DEBUG
 		glTexCoord2f(0, 1);
 		glVertex2f(-1, 1);
 		glTexCoord2f(0, 0);
@@ -105,6 +192,7 @@ int main()
 	}
 
 
+	trDestroyShaderProgram();
 	trDestroyRenderResultTexture();
 	glfwTerminate();
 	return 0;

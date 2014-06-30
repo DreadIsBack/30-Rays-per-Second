@@ -69,6 +69,26 @@ bool vec3::operator !=(const vec3& v) const
 	return !(*this == v);
 }
 
+vec3 operator +(float s, const vec3& v)
+{
+	return vec3(s + v.x, s + v.y, s + v.z);
+}
+
+vec3 operator -(float s, const vec3& v)
+{
+	return vec3(s - v.x, s - v.y, s - v.z);
+}
+
+vec3 operator *(float s, const vec3& v)
+{
+	return vec3(s * v.x, s * v.y, s * v.z);
+}
+
+vec3 operator /(float s, const vec3& v)
+{
+	return vec3(s / v.x, s / v.y, s / v.z);
+}
+
 float dot(const vec3& v1, const vec3& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
@@ -92,6 +112,16 @@ vec3 normalize(const vec3& v)
 vec3 cross(const vec3& v1, const vec3& v2)
 {
 	return vec3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x);
+}
+
+vec3 reflect(const vec3& dir, const vec3& normal)
+{
+	return dir - 2.0f * dot(normal, dir) * normal;
+}
+
+vec3 mix(const vec3& v1, const vec3& v2, float coef)
+{
+	return v1 * (1.0f - coef) + v2 * coef;
 }
 
 //------------------------------------------------------------------------------------

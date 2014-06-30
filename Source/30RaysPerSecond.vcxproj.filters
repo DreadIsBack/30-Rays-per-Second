@@ -7,4 +7,7 @@
   <ItemGroup>
     <ClInclude Include="Mathem.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Bin\rays.cs.glsl" />
+  </ItemGroup>
 </Project>

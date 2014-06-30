@@ -22,6 +22,11 @@ struct vec3
 	const vec3& operator -=(const vec3& v);
 	bool operator ==(const vec3& v) const;
 	bool operator !=(const vec3& v) const;
+
+	friend vec3 operator +(float s, const vec3& v);
+	friend vec3 operator -(float s, const vec3& v);
+	friend vec3 operator *(float s, const vec3& v);
+	friend vec3 operator /(float s, const vec3& v);
 };
 
 float dot(const vec3& v1, const vec3& v2);
@@ -29,6 +34,8 @@ float length(const vec3& v);
 float lengthSquare(const vec3& v);
 vec3 normalize(const vec3& v);
 vec3 cross(const vec3& v1, const vec3& v2);
+vec3 reflect(const vec3& dir, const vec3& normal); // NOT normalized!
+vec3 mix(const vec3& v1, const vec3& v2, float coef); // coef in range [0,1]
 
 //------------------------------------------------------------------------------------
 
