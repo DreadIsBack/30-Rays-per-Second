@@ -43,6 +43,11 @@ void trDestroyRenderResultTexture()
 
 GLFWwindow* gWindow = nullptr;
 
+void OnResize(GLFWwindow* window, int width, int height)
+{
+	glViewport(0, 0, width, height);
+}
+
 int main()
 {
 	if (!glfwInit())
@@ -55,8 +60,9 @@ int main()
 		return -1;
 	}
 
-	ShowWindow(glfwGetWin32Window(gWindow), SW_SHOWMAXIMIZED);
+	glfwSetWindowSizeCallback(gWindow, OnResize);
 	glfwMakeContextCurrent(gWindow);
+	ShowWindow(glfwGetWin32Window(gWindow), SW_SHOWMAXIMIZED);
 
 	printf("%s\n", (char*)glGetString(GL_VERSION));
 
@@ -66,9 +72,10 @@ int main()
 	wglSwapIntervalEXT(TR_VSYNC ? 1 : 0);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	TR_CHECK_OPENGL();
+	glEnable(GL_TEXTURE_2D);
 
 	trCreateRenderResultTexture();
+	TR_CHECK_OPENGL();
 
 
 	while (!glfwWindowShouldClose(gWindow))
@@ -76,10 +83,22 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 
-		// Render here!
+		// Fullscreen Quad
+		glBindTexture(GL_TEXTURE_2D, gRenderResultTexID);
+		glBegin(GL_QUADS);
+		glColor3f(0.3f, 1.0f, 0.3f); // DEBUG
+		glTexCoord2f(0, 1);
+		glVertex2f(-1, 1);
+		glTexCoord2f(0, 0);
+		glVertex2f(-1, -1);
+		glTexCoord2f(1, 0);
+		glVertex2f(1, -1);
+		glTexCoord2f(1, 1);
+		glVertex2f(1, 1);
+		glEnd();
 
 
-		glFinish();
+		glFlush();
 		glfwSwapBuffers(gWindow);
 		glfwPollEvents();
 		TR_CHECK_OPENGL();
