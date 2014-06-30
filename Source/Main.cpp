@@ -18,6 +18,28 @@
 #define TR_CHECK_OPENGL() { GLenum error = glGetError(); if (error != GL_NO_ERROR) { char buffer[1024]; _snprintf(buffer, 1024, "OpenGL error (0x%X) on %i line: %s\n", error, __LINE__, glewGetErrorString(error)); MessageBoxA(gWindow ? glfwGetWin32Window(gWindow) : nullptr, buffer, "OpenGL Error!", MB_OK); } }
 #define glCheck(func) { func; TR_CHECK_OPENGL(); }
 
+//------------------------------------------------------------------------------------
+
+GLuint gRenderResultTexID = 0;
+
+void trCreateRenderResultTexture()
+{
+	glGenTextures(1, &gRenderResultTexID);
+	glBindTexture(GL_TEXTURE_2D, gRenderResultTexID);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, TR_WIDTH, TR_HEIGHT, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void trDestroyRenderResultTexture()
+{
+	glDeleteTextures(1, &gRenderResultTexID);
+}
+
+//------------------------------------------------------------------------------------
 
 GLFWwindow* gWindow = nullptr;
 
@@ -46,6 +68,8 @@ int main()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	TR_CHECK_OPENGL();
 
+	trCreateRenderResultTexture();
+
 
 	while (!glfwWindowShouldClose(gWindow))
 	{
@@ -62,6 +86,7 @@ int main()
 	}
 
 
+	trDestroyRenderResultTexture();
 	glfwTerminate();
 	return 0;
 }
