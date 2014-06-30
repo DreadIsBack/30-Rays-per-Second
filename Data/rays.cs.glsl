@@ -34,6 +34,7 @@ layout(std430, binding=0) readonly buffer QuadBuffer
 uniform int gNumQuads;
 
 uniform vec3 gCameraPos;
+uniform mat3 gCameraRot;
 layout(RGBA32F) uniform writeonly image2D outImage;
 
 
@@ -69,7 +70,7 @@ void main()
 	const float cHeight = 600.0; // TODO: hardocde is bad
 	float viewRayX = 1.0f - ((gl_GlobalInvocationID.x * 2) / cWidth);
 	float viewRayY = -(1.0f - ((gl_GlobalInvocationID.y * 2) / cHeight)); // invert Y, becouse in OpenGL positive Y in bottom side
-	Ray viewRay = Ray(gCameraPos, normalize(vec3(viewRayX, viewRayY, -1))); // TODO: apply rotation from CameraDir, not from matrix. If this really can make.
+	Ray viewRay = Ray(gCameraPos, normalize(gCameraRot * vec3(viewRayX, viewRayY, -1))); // TODO: apply rotation from CameraDir, not from matrix. If this really can make.
 
 
 	// Ray Casting
@@ -89,7 +90,9 @@ void main()
 	vec3 color = vec3(240.0/255.0, 248.0/255.0, 255.0/255.0); // background color - alice blue
 	if (result.objIdx != -1) // have intersaction
 	{
-		color = quads[result.objIdx].diffuse.xyz;
+		// Lighting from camera
+		float NdotCD = dot(quads[result.objIdx].N.xyz, -viewRay.dir);
+		color = quads[result.objIdx].diffuse.xyz * NdotCD;
 	}
 
 	imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1.0f));

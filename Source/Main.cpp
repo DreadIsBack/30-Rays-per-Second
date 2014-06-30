@@ -199,10 +199,12 @@ void trDestroyStorageBuffer()
 //------------------------------------------------------------------------------------
 
 GLFWwindow* gWindow = nullptr;
-double gDeltaTime = 0.0;
-double gPrevTime = 0.0;
+double gDeltaTime = 0.0, gPrevTime = 0.0;
+double gCursorPosX = 0.0, gCursorPosY = 0.0, gPrevCursorPosX = 0.0, gPrevCursorPosY = 0.0;
 vec3 gCameraPos = vec3(0, 0, 3);
 vec3 gCameraDir = vec3(0, 0, -1);
+double gCameraRotX = 0.0, gCameraRotY = 0.0;
+mat3 gCameraRot;
 
 void OnResize(GLFWwindow* window, int width, int height)
 {
@@ -238,25 +240,46 @@ int main()
 	trCreateRenderResultTexture();
 	if (!trCreateShaderProgram()) return -1;
 	trCreateStorageBuffer();
+	glfwGetCursorPos(gWindow, &gCursorPosX, &gCursorPosY);
 	TR_CHECK_OPENGL();
 
 
 	while (!glfwWindowShouldClose(gWindow))
 	{
 		// Update Delta Time
-		double curTime = glfwGetTime();
-		gDeltaTime = curTime - gPrevTime;
-		gPrevTime = curTime;
+		{
+			double curTime = glfwGetTime();
+			gDeltaTime = curTime - gPrevTime;
+			gPrevTime = curTime;
+		}
+
+		// Update Cursor Pos
+		gPrevCursorPosX = gCursorPosX;
+		gPrevCursorPosY = gCursorPosY;
+		glfwGetCursorPos(gWindow, &gCursorPosX, &gCursorPosY);
 
 
 		// Handle Input
-		float moveSpeed = 2.0f; // meters in second
-		if (glfwGetKey(gWindow, GLFW_KEY_W) == GLFW_PRESS) gCameraPos += gCameraDir * moveSpeed * gDeltaTime;
-		if (glfwGetKey(gWindow, GLFW_KEY_S) == GLFW_PRESS) gCameraPos -= gCameraDir * moveSpeed * gDeltaTime;
-		if (glfwGetKey(gWindow, GLFW_KEY_A) == GLFW_PRESS) { vec3 left = cross(gCameraDir, vec3(0, 1, 0)); gCameraPos += left * moveSpeed * gDeltaTime; }
-		if (glfwGetKey(gWindow, GLFW_KEY_D) == GLFW_PRESS) { vec3 left = cross(gCameraDir, vec3(0, 1, 0)); gCameraPos -= left * moveSpeed * gDeltaTime; }
-		if (glfwGetKey(gWindow, GLFW_KEY_E) == GLFW_PRESS) gCameraPos += vec3(0, 1, 0) * moveSpeed * gDeltaTime;
-		if (glfwGetKey(gWindow, GLFW_KEY_Q) == GLFW_PRESS) gCameraPos -= vec3(0, 1, 0) * moveSpeed * gDeltaTime;
+		{
+			if (glfwGetMouseButton(gWindow, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+			{
+				double rotateSpeed = 0.2;
+				gCameraRotX += (gCursorPosX - gPrevCursorPosX) * rotateSpeed;
+				gCameraRotY += (gCursorPosY - gPrevCursorPosY) * rotateSpeed;
+				gCameraRot = RotationMatrix(-gCameraRotY, vec3(1, 0, 0)) * RotationMatrix(gCameraRotX, vec3(0, 1, 0));
+				gCameraDir = gCameraRot * vec3(0, 0, -1); // update camera dir
+			}
+
+			float moveSpeed = 2.0f; // meters in second
+			if (glfwGetKey(gWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) moveSpeed *= 2.0f;
+			if (glfwGetKey(gWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) moveSpeed *= 0.5f;
+			if (glfwGetKey(gWindow, GLFW_KEY_W) == GLFW_PRESS) gCameraPos += gCameraDir * moveSpeed * gDeltaTime;
+			if (glfwGetKey(gWindow, GLFW_KEY_S) == GLFW_PRESS) gCameraPos -= gCameraDir * moveSpeed * gDeltaTime;
+			if (glfwGetKey(gWindow, GLFW_KEY_A) == GLFW_PRESS) { vec3 left = cross(gCameraDir, vec3(0, 1, 0)); gCameraPos += left * moveSpeed * gDeltaTime; }
+			if (glfwGetKey(gWindow, GLFW_KEY_D) == GLFW_PRESS) { vec3 left = cross(gCameraDir, vec3(0, 1, 0)); gCameraPos -= left * moveSpeed * gDeltaTime; }
+			if (glfwGetKey(gWindow, GLFW_KEY_E) == GLFW_PRESS) gCameraPos += vec3(0, 1, 0) * moveSpeed * gDeltaTime;
+			if (glfwGetKey(gWindow, GLFW_KEY_Q) == GLFW_PRESS) gCameraPos -= vec3(0, 1, 0) * moveSpeed * gDeltaTime;
+		}
 
 
 		// Rendering
@@ -268,6 +291,7 @@ int main()
 		glBindImageTexture(0, gRenderResultTexID, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glUniform1i(glGetUniformLocation(gProgramID, "gNumQuads"), gNumQuads);
 		glUniform3fv(glGetUniformLocation(gProgramID, "gCameraPos"), 1, &gCameraPos.x);
+		glUniformMatrix3fv(glGetUniformLocation(gProgramID, "gCameraRot"), 1, GL_FALSE, gCameraRot.m);
 		const int WorkGroup = 8; // TODO: make configurable in shader
 		glDispatchCompute(TR_WIDTH / WorkGroup, TR_HEIGHT / WorkGroup, 1);
 		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT); // TODO: GL_TEXTURE_FETCH_BARRIER_BIT is right for 'imageStore'?
