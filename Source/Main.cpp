@@ -6,11 +6,12 @@
 #include <GLFW\glfw3native.h>
 #include <string>
 #include <stdio.h>
+#include "Mathem.h"
 
 // Hardcoded settings
 #define TR_WINDOW_NAME	"30 Rays per Second"
-#define TR_WIDTH		1024
-#define TR_HEIGHT		768
+#define TR_WIDTH		800
+#define TR_HEIGHT		600
 #define TR_FULLSCREEN	false
 #define TR_VSYNC		false
 
@@ -120,6 +121,82 @@ void trDestroyShaderProgram()
 
 //------------------------------------------------------------------------------------
 
+struct trQuad
+{
+	vec3 a;
+	float _align1;
+	vec3 b;
+	float _align2;
+	vec3 c;
+	float _align3;
+	vec3 d;
+	float _align4;
+	vec3 center;
+	float _align5;
+
+	// Material
+	vec3 diffuse;
+	float _align6;
+
+	// Required for intersection test
+	vec3 N;
+	float D;
+	vec3 N1;
+	float D1;
+	vec3 N2;
+	float D2;
+	vec3 N3;
+	float D3;
+	vec3 N4;
+	float D4;
+
+	trQuad() : D(0), D1(0), D2(0), D3(0), D4(0) {}
+	trQuad(const vec3& a, const vec3& b, const vec3& c, const vec3& d, const vec3& diffuse) : a(a), b(b), c(c), d(d), diffuse(diffuse)
+	{
+		center = (a + b + c + d) / 4.0f;
+
+		N = normalize(cross(b - a, c - a));
+		D = -dot(N, a);
+
+		N1 = normalize(cross(N, b - a));
+		D1 = -dot(N1, a);
+
+		N2 = normalize(cross(N, c - b));
+		D2 = -dot(N2, b);
+
+		N3 = normalize(cross(N, d - c));
+		D3 = -dot(N3, c);
+
+		N4 = normalize(cross(N, a - d));
+		D4 = -dot(N4, d);
+	}
+};
+
+const int gNumQuads = 1;
+GLuint gQuadBufID = 0;
+
+void trCreateStorageBuffer()
+{
+	trQuad ar[gNumQuads];
+
+	// NOTE: CCW
+	const float val = 0.5f;
+	ar[0] = trQuad(vec3(-val, val, 0), vec3(-val, -val, 0), vec3(val, -val, 0), vec3(val, val, 0), vec3(1.0f, 0.3f, 0.3f));
+
+	glGenBuffers(1, &gQuadBufID);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, gQuadBufID);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gQuadBufID);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ar), ar, GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void trDestroyStorageBuffer()
+{
+	glDeleteBuffers(1, &gQuadBufID);
+}
+
+//------------------------------------------------------------------------------------
+
 GLFWwindow* gWindow = nullptr;
 
 void OnResize(GLFWwindow* window, int width, int height)
@@ -143,7 +220,7 @@ int main()
 	glfwMakeContextCurrent(gWindow);
 	ShowWindow(glfwGetWin32Window(gWindow), SW_SHOWMAXIMIZED);
 
-	printf("%s\n", (char*)glGetString(GL_VERSION));
+	printf("OpenGL %s; %s; %s\n", (char*)glGetString(GL_VERSION), (char*)glGetString(GL_VENDOR), (char*)glGetString(GL_RENDERER));
 
 	glewExperimental = true;
 	if (glewInit() != GLEW_OK)
@@ -166,6 +243,7 @@ int main()
 		// Compute Lighting
 		glUseProgram(gProgramID);
 		glBindImageTexture(0, gRenderResultTexID, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glUniform1i(glGetUniformLocation(gProgramID, "gNumQuads"), gNumQuads);
 		const int WorkGroup = 8;
 		glDispatchCompute(TR_WIDTH / WorkGroup, TR_HEIGHT / WorkGroup, 1);
 		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);

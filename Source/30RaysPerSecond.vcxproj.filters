@@ -8,6 +8,6 @@
     <ClInclude Include="Mathem.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Bin\rays.cs.glsl" />
+    <None Include="..\Data\rays.cs.glsl" />
   </ItemGroup>
 </Project>
