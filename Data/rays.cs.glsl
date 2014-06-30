@@ -1,5 +1,20 @@
 #version 430
 
+#define VIEW_DISTANCE 100000.0f
+
+struct Ray
+{
+	vec3 origin;
+	vec3 dir;
+};
+
+struct IntersactionResult
+{
+	int objIdx;
+	vec3 point;
+	float distance;
+};
+
 struct Quad
 {
 	vec4 a, b, c, d;
@@ -21,18 +36,59 @@ uniform int gNumQuads;
 layout(RGBA32F) uniform writeonly image2D outImage;
 
 
+bool IntersectRayQuad(Ray r, int q, float maxDistance, out IntersactionResult result)
+{
+	result.objIdx = q;
+	float NdotR = -dot(quads[q].N.xyz, r.dir);
+	//if (NdotR > 0.0f) // || (Refraction > 0.0f && NdotR < 0.0f))
+	{
+		result.distance = (dot(quads[q].N.xyz, r.origin) + quads[q].N.w) / NdotR;
+		if (result.distance >= 0.0f && result.distance < maxDistance)
+		{
+			result.point = r.dir * result.distance + r.origin;
+
+			if (dot(quads[q].N1.xyz, result.point) + quads[q].N1.w < 0.0f) return false;
+			if (dot(quads[q].N2.xyz, result.point) + quads[q].N2.w < 0.0f) return false;
+			if (dot(quads[q].N3.xyz, result.point) + quads[q].N3.w < 0.0f) return false;
+			if (dot(quads[q].N4.xyz, result.point) + quads[q].N4.w < 0.0f) return false;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 void main()
 {
-	vec3 color = vec3(0.3, 1.0, 0.3); // background color
+	// Compute projection
+	const float cWidth = 800.0; // TODO: hardocde is bad
+	const float cHeight = 600.0; // TODO: hardocde is bad
+	float viewRayX = 1.0f - ((gl_GlobalInvocationID.x * 2) / cWidth);
+	float viewRayY = -(1.0f - ((gl_GlobalInvocationID.y * 2) / cHeight)); // invert Y, becouse in OpenGL positive Y in bottom side
+	const vec3 camPos = vec3(0,0,3);
+	Ray viewRay = Ray(camPos, normalize(vec3(viewRayX, viewRayY, -1))); // TODO: apply rotation from CameraDir, not from matrix. If this really can make.
 
+
+	// Ray Casting
+	float distance = VIEW_DISTANCE;
+	IntersactionResult tempResult = IntersactionResult(-1,vec3(0,0,0),0);
+	IntersactionResult result = IntersactionResult(-1,vec3(0,0,0),0);
 	for (int i = 0; i < gNumQuads; i++)
 	{
-		if (gl_GlobalInvocationID.x >= quads[i].a.x && gl_GlobalInvocationID.x <= quads[i].c.x &&
-			gl_GlobalInvocationID.y >= quads[i].a.y && gl_GlobalInvocationID.y <= quads[i].c.y)
+		if (IntersectRayQuad(viewRay, i, distance, tempResult))
 		{
-			color = quads[i].diffuse.xyz;
+			distance = tempResult.distance;
+			result = tempResult;
 		}
+	}
+
+	vec3 color = vec3(0.3, 1.0, 0.3); // background color
+	if (result.objIdx != -1) // have intersaction
+	{
+		color = quads[result.objIdx].diffuse.xyz;
 	}
 
 	imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1.0f));

@@ -180,9 +180,8 @@ void trCreateStorageBuffer()
 	trQuad ar[gNumQuads];
 
 	// NOTE: CCW
-	//const float val = 0.5f;
-	//ar[0] = trQuad(vec3(-val, val, 0), vec3(-val, -val, 0), vec3(val, -val, 0), vec3(val, val, 0), vec3(1.0f, 0.3f, 0.3f));
-	ar[0] = trQuad(vec3(200, 200, 0), vec3(200, 400, 0), vec3(400, 400, 0), vec3(400, 200, 0), vec3(1.0f, 0.3f, 0.3f));
+	const float val = 0.5f;
+	ar[0] = trQuad(vec3(-val, val, 0), vec3(-val, -val, 0), vec3(val, -val, 0), vec3(val, val, 0), vec3(1.0f, 0.3f, 0.3f));
 
 	glGenBuffers(1, &gQuadBufID);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, gQuadBufID);
