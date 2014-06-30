@@ -172,7 +172,7 @@ struct trQuad
 	}
 };
 
-const int gNumQuads = 1;
+const int gNumQuads = 2;
 GLuint gQuadBufID = 0;
 
 void trCreateStorageBuffer()
@@ -181,7 +181,8 @@ void trCreateStorageBuffer()
 
 	// NOTE: CCW
 	const float val = 0.5f;
-	ar[0] = trQuad(vec3(-val, val, 0), vec3(-val, -val, 0), vec3(val, -val, 0), vec3(val, val, 0), vec3(1.0f, 0.3f, 0.3f));
+	ar[0] = trQuad(vec3(-val, val, 0), vec3(-val, -val, 0), vec3(val, -val, 0), vec3(val, val, 0), vec3(0.9f, 0.9f, 0.9f)); // wall
+	ar[1] = trQuad(vec3(-val * 5, -0.5f, -val * 5), vec3(-val * 5, -0.5f, val * 5), vec3(val * 5, -0.5f, val * 5), vec3(val * 5, -0.5f, -val * 5), vec3(0.3f, 1.0f, 0.3f)); // land
 
 	glGenBuffers(1, &gQuadBufID);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, gQuadBufID);
@@ -198,6 +199,10 @@ void trDestroyStorageBuffer()
 //------------------------------------------------------------------------------------
 
 GLFWwindow* gWindow = nullptr;
+double gDeltaTime = 0.0;
+double gPrevTime = 0.0;
+vec3 gCameraPos = vec3(0, 0, 3);
+vec3 gCameraDir = vec3(0, 0, -1);
 
 void OnResize(GLFWwindow* window, int width, int height)
 {
@@ -238,16 +243,34 @@ int main()
 
 	while (!glfwWindowShouldClose(gWindow))
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
+		// Update Delta Time
+		double curTime = glfwGetTime();
+		gDeltaTime = curTime - gPrevTime;
+		gPrevTime = curTime;
 
+
+		// Handle Input
+		float moveSpeed = 2.0f; // meters in second
+		if (glfwGetKey(gWindow, GLFW_KEY_W) == GLFW_PRESS) gCameraPos += gCameraDir * moveSpeed * gDeltaTime;
+		if (glfwGetKey(gWindow, GLFW_KEY_S) == GLFW_PRESS) gCameraPos -= gCameraDir * moveSpeed * gDeltaTime;
+		if (glfwGetKey(gWindow, GLFW_KEY_A) == GLFW_PRESS) { vec3 left = cross(gCameraDir, vec3(0, 1, 0)); gCameraPos += left * moveSpeed * gDeltaTime; }
+		if (glfwGetKey(gWindow, GLFW_KEY_D) == GLFW_PRESS) { vec3 left = cross(gCameraDir, vec3(0, 1, 0)); gCameraPos -= left * moveSpeed * gDeltaTime; }
+		if (glfwGetKey(gWindow, GLFW_KEY_E) == GLFW_PRESS) gCameraPos += vec3(0, 1, 0) * moveSpeed * gDeltaTime;
+		if (glfwGetKey(gWindow, GLFW_KEY_Q) == GLFW_PRESS) gCameraPos -= vec3(0, 1, 0) * moveSpeed * gDeltaTime;
+
+
+		// Rendering
+		
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		// Compute Lighting
 		glUseProgram(gProgramID);
 		glBindImageTexture(0, gRenderResultTexID, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 		glUniform1i(glGetUniformLocation(gProgramID, "gNumQuads"), gNumQuads);
-		const int WorkGroup = 8;
+		glUniform3fv(glGetUniformLocation(gProgramID, "gCameraPos"), 1, &gCameraPos.x);
+		const int WorkGroup = 8; // TODO: make configurable in shader
 		glDispatchCompute(TR_WIDTH / WorkGroup, TR_HEIGHT / WorkGroup, 1);
-		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+		glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT); // TODO: GL_TEXTURE_FETCH_BARRIER_BIT is right for 'imageStore'?
 		glUseProgram(0);
 
 		// Fullscreen Quad
@@ -263,7 +286,7 @@ int main()
 		glVertex2f(1, 1);
 		glEnd();
 
-
+		// Present
 		glFlush();
 		glfwSwapBuffers(gWindow);
 		glfwPollEvents();
