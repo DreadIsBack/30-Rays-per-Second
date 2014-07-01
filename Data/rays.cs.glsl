@@ -87,12 +87,26 @@ void main()
 	}
 
 
-	vec3 color = vec3(240.0/255.0, 248.0/255.0, 255.0/255.0); // background color - alice blue
+	vec3 color = vec3(0.7f, 0.7f, 1.0f); // background color
 	if (result.objIdx != -1) // have intersaction
 	{
 		// Lighting from camera
 		float NdotCD = dot(quads[result.objIdx].N.xyz, -viewRay.dir);
-		color = quads[result.objIdx].diffuse.xyz * NdotCD;
+		color = quads[result.objIdx].diffuse.xyz * abs(NdotCD);
+	}
+	else // no intersaction
+	{
+		// Fake sky
+		if (viewRay.dir.y > 0.0f)
+		{
+			vec3 skyColorZenith = vec3(0.3f, 0.3f, 1.0f);
+			vec3 skyColorHorizont = vec3(0.7f, 0.7f, 1.0f);
+			vec3 sunColor = vec3(1.0f, 0.7f, 0.7f);
+			vec3 zenith = vec3(0,1,0);
+			vec3 sunDir = normalize(vec3(0,0.5f,-1)); // TODO: to uniform
+			color = mix(skyColorHorizont, skyColorZenith, max(0, dot(viewRay.dir, zenith))); // compute sky color
+			color += sunColor * pow(max(0, dot(viewRay.dir, sunDir)), 80); // apply sun, 80 - sun size
+		}
 	}
 
 	imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1.0f));

@@ -44,7 +44,7 @@ void trDestroyRenderResultTexture()
 
 GLuint gProgramID = 0;
 
-char* rhLoadFile(const char* fileName)
+char* trLoadFile(const char* fileName)
 {
 	FILE* f = fopen(fileName, "rb");
 	if (!f)
@@ -62,7 +62,7 @@ char* rhLoadFile(const char* fileName)
 	return buffer;
 }
 
-GLuint rhCreateShader(GLenum shaderType, const char* source)
+GLuint trCreateShader(GLenum shaderType, const char* source)
 {
 	GLuint shader = glCreateShader(shaderType);
 
@@ -86,9 +86,9 @@ GLuint rhCreateShader(GLenum shaderType, const char* source)
 bool trCreateShaderProgram()
 {
 	gProgramID = glCreateProgram();
-	//GLuint vs = rhCreateShader(GL_VERTEX_SHADER, rhLoadFile("rays.vs.glsl"));
-	//GLuint fs = rhCreateShader(GL_FRAGMENT_SHADER, rhLoadFile("rays.fs.glsl"));
-	GLuint cs = rhCreateShader(GL_COMPUTE_SHADER, rhLoadFile("../Data/rays.cs.glsl"));
+	//GLuint vs = trCreateShader(GL_VERTEX_SHADER, trLoadFile("rays.vs.glsl"));
+	//GLuint fs = trCreateShader(GL_FRAGMENT_SHADER, trLoadFile("rays.fs.glsl"));
+	GLuint cs = trCreateShader(GL_COMPUTE_SHADER, trLoadFile("../Data/rays.cs.glsl"));
 
 	//glAttachShader(gProgramID, vs);
 	//glAttachShader(gProgramID, fs);
